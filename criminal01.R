@@ -1,4 +1,5 @@
 # CA for NI crime data
+# NI Postcode data
 # GMD
 
 # Read data file from data directory
@@ -36,7 +37,7 @@ colnames(postcodes_in) <- column_names
 # Check named columns
 str(postcodes_in)
 
-# Confirm  is the number of raw rows (943 034)
+# Confirm the number of raw rows (943 034)
 nrow(postcodes_in)
 
 # First 10 complete rows
@@ -49,8 +50,10 @@ head(postcodes_in[complete.cases(postcodes_in),], n=10)
 str(postcodes_in)
 
 # Based on reasonable assumptions the fields can be seperated into required and non-required fields
-# eg this postcode data, therefore  missing postcode is a problem, organisation is not so relevant
-# First, run through the data to see where a choice should be made
+# eg this is postcode data, therefore  missing postcode is a problem, on the other hand
+# organisation is not so relevant
+#
+#First, run through the data to see where a choice should be made
 
 # No empty values - 
 # Primary Key
@@ -72,7 +75,7 @@ str(postcodes_in)
 # postcode
 # Primary Thorfare
 
-# subset those columns
+# subset those columns to deal only with them, inclulding primary key
 sub_post <- postcodes_in[ c(5,10,12,15) ]
 
 str(sub_post)
@@ -94,13 +97,15 @@ sum(is.na(sub_post$Town))
 # Approx 20k missing town records is substantial, missing > 20%
 # Therefore  leave it in place, besides its categorical data
 
-# Checking on  Postcode
+# Checking Postcode
 # Summary shows 8 900 blanks out of total, missing < 1%
 # Therefore they could be removed
 # If, in later analysis, the issing values were important, its possible 
 # the x/y co-ordinatres could be used to guess the missing values
+sub_post$Postcode[sub_post$Postcode == ""] <- NA
+sum(is.na(sub_post$Postcode))
 
-# Check on Primary_Thorfare
+# Check Primary_Thorfare
 # set the blanks to NA and check the resulting NA count
 sub_post$Primary_Thorfare[sub_post$Primary_Thorfare == ""] <- NA
 sum(is.na(sub_post$Primary_Thorfare))
@@ -108,26 +113,43 @@ sum(is.na(sub_post$Primary_Thorfare))
 # approx 470 missing Primary_Thorfare records not substantial, missing < 0.1%
 
 # Therefore, it should be possible to remove blank Primary_Thorfare and Postcode
-
+# Examine if thw missing data aligns  by charting the missing values
+# This will show how the missing values are spread across the columns
+# and indicate the number of total rows  that will be deleted
 
 library(mice)
-md.pattern(sub_post)
+md.pattern(sub_post, rotate.names = FALSE)
 
 library(VIM)
-missing_values <- aggr(sub_post, prop = FALSE, numbers = TRUE)
+missing_values <- aggr(sub_post, prop = c(FALSE), numbers = TRUE,
+                       labels=names(data),
+                       combined = TRUE
+                       )
+
 # Show summary of the contents of missing_values
 summary(missing_values)
 
-str(postcodes_in)
+
+# 8900 + 438 = 9338 to go, 933 696 records should remain
+# Removing the blank postcode and primary_thorfare
+postcodes_in$Primary_Thorfare[postcodes_in$Primary_Thorfare == ""] <- NA
+postcodes_in$Postcode[postcodes_in$Postcode == ""] <- NA
+
+postcodes_in <- postcodes_in[complete.cases(postcodes_in[,c(5,12)]),]
+nrow(postcodes_in)
+
+# New number of rows co-incides with expected result
 
 # Column reorder, placing primary key in column 1
-postcodes_in <- postcodes_in[c(2,3:15,1) ]
+postcodes_in <- postcodes_in[c(15,1:14) ]
 
 str(postcodes_in)
 
-# Create data subset for Limavady
-# Where Limavady (LIMAVADY) is either in teh town, townland or locality
+# Save newly cleaned and reorganised complete data to output file
+write.csv(file="data/CleanNIPostcodeData.csv", x=postcodes_in, quote=FALSE, row.names = FALSE)
 
+# Create data subset for Limavady
+# Where Limavady (LIMAVADY) is either in the town, townland or locality
 Limavady_data <- subset(postcodes_in,  
                         postcodes_in$Town == "LIMAVADY" 
                         | postcodes_in$Locality == "LIMAVADY" 
@@ -139,5 +161,3 @@ str(Limavady_data)
 write.csv(file="data/Limavady.csv", x=Limavady_data, quote=FALSE, row.names = FALSE)
 
 
-# Save newly cleaned and reorganised complete data to output file
-write.csv(file="data/CleanNIPostcodeData.csv", x=postcodes_in, quote=FALSE, row.names = FALSE)
