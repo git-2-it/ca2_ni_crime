@@ -2,7 +2,7 @@
 # GMD
 
 # Read data file from data directory
-# no header, defined seperator, blanks set as NA
+# no header, defined seperator, (blanks set as NA?)
 postcodes_in <- read.csv("data/NIPostcodes.csv", header=FALSE, sep=",")
 
 # show structure
@@ -72,10 +72,10 @@ str(postcodes_in)
 # postcode
 # Primary Thorfare
 
+# subset those columns
 sub_post <- postcodes_in[ c(5,10,12,15) ]
 
 str(sub_post)
-
 
 # Check a summary view of the data, noting total records count is 943 034
 summary(sub_post)
@@ -89,10 +89,10 @@ summary(sub_post)
 # Check on number of potentially affected records none the less
 # set the blanks to NA and check the resulting NA count
 sub_post$Town[sub_post$Town == ""] <- NA
-countNA(sub_post$Town)
+sum(is.na(sub_post$Town))
 
 # Approx 20k missing town records is substantial, missing > 20%
-# Therefore  leave it in place
+# Therefore  leave it in place, besides its categorical data
 
 # Checking on  Postcode
 # Summary shows 8 900 blanks out of total, missing < 1%
@@ -103,7 +103,7 @@ countNA(sub_post$Town)
 # Check on Primary_Thorfare
 # set the blanks to NA and check the resulting NA count
 sub_post$Primary_Thorfare[sub_post$Primary_Thorfare == ""] <- NA
-countNA(sub_post$Primary_Thorfare)
+sum(is.na(sub_post$Primary_Thorfare))
 
 # approx 470 missing Primary_Thorfare records not substantial, missing < 0.1%
 
@@ -120,5 +120,24 @@ summary(missing_values)
 
 str(postcodes_in)
 
+# Column reorder, placing primary key in column 1
+postcodes_in <- postcodes_in[c(2,3:15,1) ]
+
+str(postcodes_in)
+
+# Create data subset for Limavady
+# Where Limavady (LIMAVADY) is either in teh town, townland or locality
+
+Limavady_data <- subset(postcodes_in,  
+                        postcodes_in$Town == "LIMAVADY" 
+                        | postcodes_in$Locality == "LIMAVADY" 
+                        | postcodes_in$Townland == "LIMAVADY" 
+)
+str(Limavady_data)
+
+# Save Limavady data to output file
+write.csv(file="data/Limavady.csv", x=Limavady_data, quote=FALSE, row.names = FALSE)
 
 
+# Save newly cleaned and reorganised complete data to output file
+write.csv(file="data/CleanNIPostcodeData.csv", x=postcodes_in, quote=FALSE, row.names = FALSE)
