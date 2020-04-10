@@ -90,7 +90,8 @@ crimes_in$Location[crimes_in$Location == ""] <- NA
 set.seed(100)
 random_crime_sample <- sample_n(na.omit(crimes_in), 5000, replace = FALSE)
 
-sample(random_crime_sample, 10, replace = TRUE)
+samp <- sample_n(random_crime_sample, 10, replace = TRUE)
+
 
 #Re-read Postcode data from previously
 postcodes_clean <- read.csv("data/CleanNIPostcodeData.csv", header=TRUE, sep=",")
@@ -98,62 +99,21 @@ postcodes_clean <- read.csv("data/CleanNIPostcodeData.csv", header=TRUE, sep=","
 # Indexing postcode data by street name, ie primary thouroughfare
 
 # Create function find_a_town
-# function is to able to find, for an individual entry, a value for town
-# Note, trying the use of  datatables, reading that these are a more efficient way of lookups over 
-# large amounts of data library(data.table)
+# function is to find, for an individual entry, a value for town based on location
 library("data.table")
-
 postcodes_table <- data.table(postcodes_clean)
 
 # Create the function
 # Removes blank town values and returns only the first entry, obviously leads to possibly incorrect
 # data, eg consider case of "man street" which is in partically every town in the country
-find_a_town <- function(loc_in)
+find_a_town <- function(row_in)
 {
-  # Tidy function input eg remove case sensitivity
-  loc_in <- toupper(loc_in)
+  loc_in <- row_in[c("Location")]
 
-    # Do a lookup
-  retVal <- postcodes_table[ Primary_Thorfare %in% c(loc_in)] 
-  
-  # Remove blank town values
-  # retVal <- retVal[complete.cases(retVal[,c(10)]),]
-  retVal <- na.omit(retVal$Town)
-
-  # Only return the first entry found
-  return(retVal[1])
-}
-
-fred <- random_crime_sample # $Location
-locs <- data.frame(fred$Location)
-fred$Town <- find_a_town(locs)
-
-str(locs)
-by(fred, 1:nrow(fred), find_a_town ) # sets all to fucking portstewart
-
-
-apply(locs[,c("Location")], 1, function(y) testFunc(y["Location"]))
-
-mapply(find_a_town, fred[, "Location"])
-
-
-str(fred)
-levels(fred$Town)
-summary(fred)
-
-fred$Town <- sapply(fred[4], 2, find_a_town) 
-
-fred$Town <- apply(fred[,c(4)], 2, find_a_town) 
-
-
-find_a_town <- function(loc_in)
-{
-  cat (loc_in)
-  
   # Tidy function input eg remove case sensitivity
   loc_in <- toupper(loc_in)
   
-  # Do a lookup
+  # Do lookup
   retVal <- postcodes_table[ Primary_Thorfare %in% c(loc_in)] 
   
   # Remove blank town values
@@ -164,13 +124,63 @@ find_a_town <- function(loc_in)
   return(retVal[1])
 }
 
-
-samp <- sample_n(na.omit(crimes_in), 5, replace = FALSE)
-
-fred <- samp
-
-fred$Town <- apply(fred, 1, find_a_town)
+# Add new town column to dataset
+samp$Town <- apply(samp, 1, find_a_town)
 
 
+# Read in villages data containing population data
+villages <- read.csv("data/VillageList.csv", header=TRUE, sep=",")
+
+colnames(villages)[1] <- "CITY.TOWN.VILLAGE"
+villages$CITY.TOWN.VILLAGE <- toupper(villages$CITY.TOWN.VILLAGE)
 
 
+str(villages)
+villages_table <- data.table(villages)
+
+str(villages_table)
+
+# Lookup population function
+add_town_data <- function(row_in)
+{
+  loc_in <- row_in[c("Town")]
+  
+  cat(loc_in)
+  if (is.na(loc_in) | loc_in == "")
+  {
+    return(NA)
+  }
+
+  # Deal with Derry  
+  if (loc_in == "LONDONDERRY" )
+  {
+     loc_in <- "DERRY"
+  }
+  
+  # Tidy function input eg remove case sensitivity
+  loc_in <- toupper(loc_in)
+  
+  # Do lookup
+  retVal <- villages_table[ CITY.TOWN.VILLAGE %in% c(loc_in)] 
+
+  # Return values
+  retVal <- as.character(na.omit(retVal$POPULATION))
+
+  # Only return the first entry found
+  return(retVal[1])
+}
+
+str(villages)
+
+samp <- sample_n(na.omit(random_crime_sample), 10, replace = TRUE)
+samp$Town <- apply(samp, 1, find_a_town)
+str(samp)
+
+#samp$Town <- 
+samp$Population <- apply(samp, 1, add_town_data)
+
+add_town_data("Beflast")
+
+str(samp)
+
+structure(samp)
