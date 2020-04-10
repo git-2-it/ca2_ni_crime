@@ -113,7 +113,8 @@ sum(is.na(sub_post$Primary_Thorfare))
 # approx 470 missing Primary_Thorfare records not substantial, missing < 0.1%
 
 # Therefore, it should be possible to remove blank Primary_Thorfare and Postcode
-# Examine if thw missing data aligns  by charting the missing values
+
+# Examine if the missing data aligns by charting the missing values
 # This will show how the missing values are spread across the columns
 # and indicate the number of total rows  that will be deleted
 
