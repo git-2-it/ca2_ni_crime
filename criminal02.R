@@ -50,6 +50,8 @@ colnames(crimes_in) <- colnames
 str(crimes_in)
 
 
+write.csv(file="data/AllNICrimeData.csv", x=crimes_in, quote=TRUE, row.names = FALSE)
+
 # --------------------------------------------------
 # Remove unnecessary columns
 # --------------------------------------------------
@@ -246,6 +248,9 @@ add_town_data <- function(row_in)
 # Use the function to add town population data to the sample 
 # --------------------------------------------------
 random_crime_sample$Population <- apply(random_crime_sample, 1, add_town_data)
+samp <- sample_n(na.omit(random_crime_sample), 10, replace = FALSE)
+
+samp$Population <- apply(samp, 1, add_town_data)
 
 # --------------------------------------------------
 # Save sample dataset file
@@ -281,7 +286,7 @@ belderr <- belderr[order(belderr$Town, belderr$Crime.type),]
 init_par <- par()
 
 # Create table of data for plots
-plot_table <- table(belderr$Town, belderr$Crime.type, exclude = TRUE)
+plot_table <- table(belderr$Town, belderr$Crime.type, belderr$Population, exclude = TRUE)
 
 str(plot_table)
 
@@ -293,6 +298,36 @@ barplot(plot_table,
         col = viridis(2),
         cex.names = 0.75,
         legend = TRUE , 
-        beside = TRUE
-)
+        beside = TRUE,
+) 
+# +  theme(legend.position="top")
 
+
+belderr[, "new"] <- belderr[, "min"] / belderr[, "count2.freq"]
+
+plot_table <- table(belderr$Town, belderr$Crime.type, exclude = TRUE, dnn = c("Town", "CrimeType") )
+
+str(plot_table)
+
+fred <- data.frame(plot_table)
+str(fred)
+
+fred$Population <- as.numeric(
+  apply(fred, 1, add_town_data)
+  )
+
+fred$Population <- as.numeric(gsub(",", "",   apply(fred, 1, add_town_data)))
+
+fred$per <- fred[, "Freq"] / fred[, "Population"] * 1000
+
+plot_table <- table(fred$Town, fred$per, exclude = TRUE, dnn = c("Town", "CrimeType") )
+
+barplot(plot_table, 
+        main = "NI Crime Statistics: Belfast and Derry",
+        xlab = "Crime Type", 
+        ylab = "Frequency",
+        col = viridis(2),
+        cex.names = 0.75,
+        legend = TRUE , 
+        beside = TRUE,
+) 
