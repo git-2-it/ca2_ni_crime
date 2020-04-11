@@ -14,7 +14,7 @@ library("viridis")
 library("data.table")
 
 # set the path to the top level data directory
-datapath <- "data/NI Crime Data2"
+datapath <- "data/NI Crime Data"
 
 crimes_in <- data.frame()
 
