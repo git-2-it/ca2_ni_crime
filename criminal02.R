@@ -2,14 +2,58 @@
 # NI Crime dataset
 # GMD
 
+# --------------------------------------------------
+# Read and review the data 
+# --------------------------------------------------
+
+# Init required libraries
+library("plyr")
+library("dplyr") 
+library("readr") 
+library("viridis")
+library("data.table")
+
+# set the path to the top level data directory
+datapath <- "data/NI Crime Data2"
+
+crimes_in <- data.frame()
+
+# List of expected columns and structure 
+coltypes <- list(
+  col_character(), col_character(), col_character(), col_character(), col_character(), col_character(),
+  col_character(), col_character(), col_character(), col_factor(), col_character(), col_character()
+)
+
+colnames <- c(
+  "Crime.ID", 
+  "Month", 
+  "Reported.by", 
+  "Falls.within" ,
+  "Longitude" ,
+  "Latitude" ,
+  "Location",
+  "LSOA.code" ,
+  "LSOA.name" ,
+  "Crime.type",
+  "Last.outcome.category" ,
+  "Context"
+)
+
+
 # Read in the data
-crimes_in <- read.csv("data/NI Crime Data/2015-01/2015-01-northern-ireland-street.csv", header=TRUE, sep=",")
+crimes_in <- list.files(path=datapath, full.names=TRUE, recursive = TRUE) %>% 
+  lapply(read_csv, col_types = coltypes) %>%   bind_rows
+
+colnames(crimes_in) <- colnames
 
 # dataset review
 str(crimes_in)
 
 
-# Remove specified columns
+# --------------------------------------------------
+# Remove unnecessary columns
+# --------------------------------------------------
+
 crimes_in <- subset(crimes_in, select = -c(Crime.ID, 
                               Reported.by, Falls.within, LSOA.code, LSOA.name, 
                               Last.outcome.category, 
@@ -17,9 +61,9 @@ crimes_in <- subset(crimes_in, select = -c(Crime.ID,
 # Confirm new structure
 str(crimes_in)
 
-# Abbreviate crime types 
-# Import dplyr library for manipulation functions
-library(dplyr)
+# --------------------------------------------------
+# Abbreviate crime types
+# --------------------------------------------------
 
 # Reconfigure values in the crime type field
 crimes_in <- crimes_in %>% mutate(Crime.type=recode(Crime.type, 
@@ -38,8 +82,10 @@ crimes_in <- crimes_in %>% mutate(Crime.type=recode(Crime.type,
                                        "Other crime" = "OTCR",
                                        ))
 
+# Check the levels
+levels(crimes_in$Crime.type)
 
-# Align all factors
+# One was missed, align all factors
 crimes_in <- crimes_in %>% mutate(Crime.type=recode(Crime.type, 
                                                     "Possession of weapons" = "POSW"
                                                     ))
@@ -47,16 +93,14 @@ crimes_in <- crimes_in %>% mutate(Crime.type=recode(Crime.type,
 levels(crimes_in$Crime.type)
 
 # All input crime factor descriptions now shortened
-
 # Data reduced and tidyied
+
+# --------------------------------------------------
 # Now to move to plotting the data
+# --------------------------------------------------
 
 # Store default plot settings
 before_plt <- par()
-
-# Add colour package
-# install.packages("viridis")  # Install
-library("viridis")
 
 plot_table <- table(crimes_in$Crime.type)
 str(plot_table)
@@ -73,7 +117,10 @@ barplot(plot_table,
 # Criminal damage, other theft and burglary are also highly prevalent
 
 
+# --------------------------------------------------
 # Remove "On or near" substring  from location
+# --------------------------------------------------
+
 crimes_in$Location <- gsub( "On or near", "", crimes_in$Location)
 crimes_in$Location <- trimws(crimes_in$Location)
 
@@ -83,17 +130,26 @@ sample_n(crimes_in, 20)
 # Set empty locations to NA
 crimes_in$Location[crimes_in$Location == ""] <- NA
 
+str(crimes_in)
+
+# --------------------------------------------------
+# Create random sample
+# --------------------------------------------------
+
 # Select a random sample of 5000, ensuring 5000 different entries, with no NA values
 set.seed(100)
 random_crime_sample <- sample_n(na.omit(crimes_in), 5000, replace = FALSE)
+str(random_crime_sample)
 
 # Re-read Postcode data created previously
 postcodes_clean <- read.csv("data/CleanNIPostcodeData.csv", header=TRUE, sep=",")
 
+# --------------------------------------------------
 # Create function find_a_town
 # function is to find, for an individual entry, a value for town based on location
+# --------------------------------------------------
 
-library("data.table")
+
 # Create data table
 postcodes_table <- data.table(postcodes_clean)
 
@@ -126,11 +182,13 @@ find_a_town <- function(row_in)
 }
 
 # Add new town column to dataset
-# samp$Town <- apply(samp, 1, find_a_town)
 random_crime_sample$Town <- apply(random_crime_sample, 1, find_a_town)
 
 
+# --------------------------------------------------
 # Read in villages data containing population figures
+# --------------------------------------------------
+
 villages <- read.csv("data/VillageList.csv", header=TRUE, sep=",")
 str(villages)
 
@@ -148,7 +206,9 @@ setkey(villages_table, CITY.TOWN.VILLAGE)
 str(villages_table)
 
 
+# --------------------------------------------------
 # Lookup population function
+# --------------------------------------------------
 add_town_data <- function(row_in)
 {
   # Expects data row containing a Location field as input
@@ -182,18 +242,20 @@ add_town_data <- function(row_in)
   return(retVal[1])
 }
 
+# --------------------------------------------------
+# Use the function to add town population data to the sample 
+# --------------------------------------------------
 random_crime_sample$Population <- apply(random_crime_sample, 1, add_town_data)
 
-
-
-# Add town population data to the sample 
-random_crime_sample$Population <- apply(random_crime_sample, 1, add_town_data)
-
+# --------------------------------------------------
 # Save sample dataset file
+# --------------------------------------------------
 write.csv(file="data/random_crime_sample.csv", x=random_crime_sample, quote=TRUE, row.names = FALSE)
 
 
-# Charting data figures for Belfast and Derry
+# --------------------------------------------------
+# Charting data figures for Belfast and Derry 
+# --------------------------------------------------
 
 # Extract belfast/Derry data 
 # First, clean up the NA Town values
@@ -209,6 +271,11 @@ str(belderr)
 
 # Drop unnecessary factors levels to make plotting etc simpler
 belderr <- droplevels(belderr)
+belderr <- belderr[order(belderr$Town, belderr$Crime.type),]
+
+# --------------------------------------------------
+# Visuals 
+# --------------------------------------------------
 
 # Store the current  par setup before next set of visuals
 init_par <- par()

@@ -2,6 +2,10 @@
 # NI Postcode data
 # GMD
 
+# --------------------------------------------------
+# Read data
+# --------------------------------------------------
+
 # Read data file from data directory, a subdir of the code storage
 # no header, defined seperator, (blanks set as NA?)
 postcodes_in <- read.csv("data/NIPostcodes.csv", header=FALSE, sep=",")
@@ -9,7 +13,10 @@ postcodes_in <- read.csv("data/NIPostcodes.csv", header=FALSE, sep=",")
 # show structure
 str(postcodes_in)
 
+# --------------------------------------------------
 # Actual data structure to be applied
+# --------------------------------------------------
+
 # Organisation Name
 # Sub-building Name
 # Building Name
@@ -43,6 +50,10 @@ nrow(postcodes_in)
 # First 10 complete rows
 # (really complete, na on all blanks is 0?)
 head(postcodes_in[complete.cases(postcodes_in),], n=10)
+
+# --------------------------------------------------
+# Missing data
+# --------------------------------------------------
 
 # Begin to deal with missing data, filtering what is missing and necessary, 
 # vs missing and unnecessary
@@ -141,6 +152,10 @@ nrow(postcodes_in)
 
 # New number of rows co-incides with expected result
 
+# --------------------------------------------------
+# Reorder the columns
+# --------------------------------------------------
+
 # Column reorder, placing primary key in column 1
 postcodes_in <- postcodes_in[c(15,1:14) ]
 
@@ -158,7 +173,11 @@ Limavady_data <- subset(postcodes_in,
 )
 str(Limavady_data)
 
+
+# --------------------------------------------------
 # Save Limavady data to output file
+# --------------------------------------------------
+
 write.csv(file="data/Limavady.csv", x=Limavady_data, quote=FALSE, row.names = FALSE)
 
 
