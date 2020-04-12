@@ -1,3 +1,5 @@
 # ca2_ni_crime
 
-Note teh data subdirectory.
+Note data subdirectory.
+
+Required to hold teh source data files and as target for outputs.
