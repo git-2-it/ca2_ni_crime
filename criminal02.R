@@ -97,6 +97,8 @@ levels(crimes_in$Crime.type)
 # All input crime factor descriptions now shortened
 # Data reduced and tidyied
 
+write.csv(file="data/AllNICrimeData.csv", x=crimes_in, quote=TRUE, row.names = FALSE)
+
 # --------------------------------------------------
 # Now to move to plotting the data
 # --------------------------------------------------
@@ -115,6 +117,8 @@ barplot(plot_table,
         cex.names = 0.75,
         )
 
+structure(plot_table)
+
 # Can see high incidences of ASBOs and violent and sexual offences
 # Criminal damage, other theft and burglary are also highly prevalent
 
@@ -127,7 +131,7 @@ crimes_in$Location <- gsub( "On or near", "", crimes_in$Location)
 crimes_in$Location <- trimws(crimes_in$Location)
 
 # View small sample of the data to confirm the removal
-sample_n(crimes_in, 20)
+sample_n(crimes_in, 10)
 
 # Set empty locations to NA
 crimes_in$Location[crimes_in$Location == ""] <- NA
@@ -186,6 +190,7 @@ find_a_town <- function(row_in)
 # Add new town column to dataset
 random_crime_sample$Town <- apply(random_crime_sample, 1, find_a_town)
 
+str(random_crime_sample)
 
 # --------------------------------------------------
 # Read in villages data containing population figures
@@ -248,9 +253,6 @@ add_town_data <- function(row_in)
 # Use the function to add town population data to the sample 
 # --------------------------------------------------
 random_crime_sample$Population <- apply(random_crime_sample, 1, add_town_data)
-samp <- sample_n(na.omit(random_crime_sample), 10, replace = FALSE)
-
-samp$Population <- apply(samp, 1, add_town_data)
 
 # --------------------------------------------------
 # Save sample dataset file
@@ -278,6 +280,8 @@ str(belderr)
 belderr <- droplevels(belderr)
 belderr <- belderr[order(belderr$Town, belderr$Crime.type),]
 
+str(belderr)
+
 # --------------------------------------------------
 # Visuals 
 # --------------------------------------------------
@@ -286,7 +290,8 @@ belderr <- belderr[order(belderr$Town, belderr$Crime.type),]
 init_par <- par()
 
 # Create table of data for plots
-plot_table <- table(belderr$Town, belderr$Crime.type, belderr$Population, exclude = TRUE)
+plot_table <- table(belderr$Town, belderr$Crime.type, exclude = TRUE, 
+                    dnn = c("Town", "Crime.Type"))
 
 str(plot_table)
 
@@ -297,37 +302,45 @@ barplot(plot_table,
         ylab = "Frequency",
         col = viridis(2),
         cex.names = 0.75,
-        legend = TRUE , 
+        legend = TRUE, 
         beside = TRUE,
+        args.legend = list(x = "topright") 
 ) 
-# +  theme(legend.position="top")
+
+library(lattice)
+histogram(~ Crime.type | Town, data=belderr,
+          type = c("count"),
+          xlab=list(label="Crime Type",cex=0.75),
+          ylab=list(label="Frequency",cex=0.75),
+          main = "NI Crime Statistics: Belfast and Derry",
+          col = viridis(length(levels(belderr$Crime.type))),
+          scales=list(cex=0.5),
+)
 
 
-belderr[, "new"] <- belderr[, "min"] / belderr[, "count2.freq"]
+# --------------------------------------------------
+# Build and view crime figures relative to population 
+# --------------------------------------------------
 
-plot_table <- table(belderr$Town, belderr$Crime.type, exclude = TRUE, dnn = c("Town", "CrimeType") )
+plot_hist <-data.frame(plot_table)
 
-str(plot_table)
+plot_hist$Population <- as.numeric(gsub(",", "", apply(plot_hist, 1, add_town_data)))
 
-fred <- data.frame(plot_table)
-str(fred)
+# Large number (100k) used for indicative purposes and scaling
+plot_hist$Per <- 100000 * plot_hist[, "Freq"] / plot_hist[, "Population"]
 
-fred$Population <- as.numeric(
-  apply(fred, 1, add_town_data)
-  )
+str(plot_hist)
 
-fred$Population <- as.numeric(gsub(",", "",   apply(fred, 1, add_town_data)))
+library(ggplot2)
+side_plot <- ggplot(data=plot_hist, 
+                    aes(x=Crime.Type, y=Per, fill = Town ,
+                    colour = Town) ,
+                    main = "NI Crime Statistics: Belfast and Derry",
+                    xlab = "Crime Type", 
+                    ylab = "Relative Frequency",
+                    col = viridis(2))
+side_plot <- side_plot + geom_bar(stat="identity", position=position_dodge()) 
+side_plot <- side_plot + ggtitle("Relative crime rate\n by population") +
+  xlab("Crime") + ylab("Relative rate")
+side_plot
 
-fred$per <- fred[, "Freq"] / fred[, "Population"] * 1000
-
-plot_table <- table(fred$Town, fred$per, exclude = TRUE, dnn = c("Town", "CrimeType") )
-
-barplot(plot_table, 
-        main = "NI Crime Statistics: Belfast and Derry",
-        xlab = "Crime Type", 
-        ylab = "Frequency",
-        col = viridis(2),
-        cex.names = 0.75,
-        legend = TRUE , 
-        beside = TRUE,
-) 

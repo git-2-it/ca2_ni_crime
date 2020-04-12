@@ -13,6 +13,8 @@ postcodes_in <- read.csv("data/NIPostcodes.csv", header=FALSE, sep=",")
 # show structure
 str(postcodes_in)
 
+head(postcodes_in, n=10)
+
 # --------------------------------------------------
 # Actual data structure to be applied
 # --------------------------------------------------
